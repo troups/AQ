@@ -2,15 +2,33 @@ import datetime
 import numpy as np
 import pandas
 import matplotlib.pyplot as plt
-from AQ import *
-import requests
+from London import *
 import csv
 import scipy
+
+"""
+
+Why
+
+We want to know air quality at a given postcode
+But air quality sensors are not at the postcode
+So we do some data science to estimate the NO2 from the london air quality network
+
+How
+Use the London city class
+Load some reference data since we don't know sensor locations
+We know rack locations from the payloads
+Get the data from Opensensors.io API
+Do a weighted average based on the distance from the air quality sensors
+Use MACD exponential moving average divergence to track trending
+Plot
+
+"""
 
 #how many days we want to look back over time
 lookback = 5
 #the file that holds all the meta data for LAQN sensors
-LAQN_file = '/home/troups/osio/AQ/LAQN.csv'
+LAQN_file = '/home/troups/osio/AQ/Data/LAQN.csv'
 
 #API Key comes from your account on the opensensors platform
 API_KEY = ''
@@ -24,67 +42,19 @@ with open(LAQN_file) as f:
     reader = csv.reader(f)
     LAQN_locations = dict((rows[0],[float(rows[1]),float(rows[2])]) for rows in reader)
 
-#something to work out the distance between two lat/long pairs 
-def getDistance(first, second):
-        lat_1 = radians(first[0])
-        lat_2 = radians(second[0])
-        d_lat = radians(second[0] - first[0])
-        d_lng = radians(second[1] - first[1])
-        R = 6371.0
-        a = pow(sin(d_lat / 2.0), 2) + cos(lat_1) * cos(lat_2) * \
-            pow(sin(d_lng / 2.0), 2)
-        c = 2.0 * atan2(sqrt(a), sqrt(1 - a))
-        return R * c
-
-#something to get the lat/long for a postcode
-def getPostcode(postcode):
-    url = '%s/postcode/%s.json' % ('http://www.uk-postcodes.com', postcode)
-    response = requests.get(url)
-    return response.json()
-
-#some functions pinched from finance charting
-def moving_average(x, n, type='simple'):
-    """
-    compute an n period moving average.
-
-    type is 'simple' | 'exponential'
-
-    """
-    x = np.asarray(x)
-    if type == 'simple':
-        weights = np.ones(n)
-    else:
-        weights = np.exp(np.linspace(-1., 0., n))
-
-    weights /= weights.sum()
-
-    a = np.convolve(x, weights, mode='full')[:len(x)]
-    a[:n] = a[n]
-    return a
-
-def moving_average_convergence(x, nslow=8, nfast=4):
-    """
-    compute the MACD (Moving Average Convergence/Divergence) using a fast and slow exponential moving avg'
-    return value is emaslow, emafast, macd which are len(x) arrays
-    """
-    emaslow = moving_average(x, nslow, type='exponential')
-    emafast = moving_average(x, nfast, type='exponential')
-    return emafast, emaslow, emafast - emaslow
-
+#create instance of Air Quality Object
+opensensor = London(API_KEY)
 #set my postcode
 myPostCode = 'E1W 2PA'
 #get the geo data for my postcode
-geo_meta_data=getPostcode(myPostCode)
+geo_meta_data=opensensor.getPostcode(myPostCode)
 #get the distance from all the LAQN sensors from my postcode
-distance = pandas.Series(dict((k, getDistance(v,[geo_meta_data['geo']['lng'], geo_meta_data['geo']['lat']])) for k, v in LAQN_locations.items()))
+distance = pandas.Series(dict((k, opensensor.getDistance(v,[geo_meta_data['geo']['lng'], geo_meta_data['geo']['lat']])) for k, v in LAQN_locations.items()))
 #work out the weight for each LAQN sensor
 weight = np.exp(-2*distance)/sum(np.exp(-2*distance))
 
-#create instance of Air Quality Object
-opensensor = AQ(API_KEY)
-
 #get the list of LAQN measures
-LAQN_mtx = opensensor.getLAQNAsDataFrame(start=start_date,end=end_date)
+LAQN_mtx = opensensor.getAirQuality(start=start_date,end=end_date)
 
 #grab the NO2 data where we bhave the intersect of weights and NO2
 NO2 = LAQN_mtx['NO2'][list(weight[list(LAQN_mtx['NO2'].columns)].index)]
@@ -104,7 +74,7 @@ myAQ = (NO2 * weight).sum(axis = 1)
 nslow = 6
 nfast = 3
 #get the MACD and exp moving avgs
-NO2_emafast,NO2_emaslow,NO2_macd = moving_average_convergence(myAQ, nslow=nslow, nfast=nfast)
+NO2_emafast,NO2_emaslow,NO2_macd = opensensor.getMovingAverageConvergence(myAQ, nslow=nslow, nfast=nfast)
 
 #make into 1/0 signal
 signal = NO2_macd/abs(NO2_macd)

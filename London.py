@@ -12,7 +12,7 @@ API_VERSION = '1'
 
 BASE_URL = 'https://api.opensensors.io/v'+ API_VERSION
 
-class AQ():
+class London():
 
     def __init__(self, API_KEY, user=None):
         self.user= user
@@ -86,7 +86,7 @@ class AQ():
             print('A Connection error occurred.', exc)
     
     
-    def getLAQN(self,topic,start='19000101',end=None):
+    def getAirQualityByTopic(self,topic,start='19000101',end=None):
         
         payloads_list = self.getMsgsByTopic(topic,start,end)
 
@@ -117,7 +117,7 @@ class AQ():
             print ("Unexpected error:") 
             raise  
 
-    def getLAQNAsDataFrame(self,start='19000101',end=None, location = None):
+    def getAirQuality(self,start='19000101',end=None, location = None):
  
         AQThings = {}
         try:   
@@ -130,10 +130,9 @@ class AQ():
                     mytopic = LAQNtopics.ix[i]['topic']
                     print('fetching '+LAQNtopics.ix[i]['name']) 
                     time.sleep(1)  
-                    thisThing = self.getLAQN(topic = mytopic, start = start, end = end)
+                    thisThing = self.getAirQualityByTopic(topic = mytopic, start = start, end = end)
                     if thisThing is not None:  
                         AQThings[LAQNtopics.ix[i]['name']] = thisThing
-                #if i > 5: break
                    
             AQMeasures = {}
             
@@ -160,7 +159,7 @@ class AQ():
             print ("Unexpected error:") 
             raise 
                     
-    def getTFLBikes(self,topic,start='19000101',end=None):
+    def getTFLBikesByTopic(self,topic,start='19000101',end=None):
         
         payloads_list = self.getMsgsByTopic(topic,start,end)
 
@@ -215,7 +214,7 @@ class AQ():
             print ("Unexpected error:") 
             raise
             
-    def getTFLBikesAsDataFrame(self,start='19000101',end=None):
+    def getTFLBikes(self,start='19000101',end=None):
         
         try:   
     
@@ -229,7 +228,7 @@ class AQ():
                 mytopic = Biketopics.ix[i]['topic']
                 print('fetching '+Biketopics.ix[i]['name']) 
                 time.sleep(1)                   
-                thisThing, meta_data = self.getTFLBikes(topic = mytopic, start = start, end = end)                
+                thisThing, meta_data = self.getTFLBikesByTopic(topic = mytopic, start = start, end = end)                
                 if thisThing is not None and meta_data is not None:  
                     for key in meta_data.keys(): 
                         BikeMetaData[key] = meta_data[key]
@@ -253,7 +252,7 @@ class AQ():
             print ("Unexpected error:") 
             raise
 
-    def getTFLTube(self,topic,start='19000101',end=None):
+    def getTFLTubeByTopic(self,topic,start='19000101',end=None):
         
         try:
             
@@ -290,7 +289,7 @@ class AQ():
             print ("Unexpected error:") 
             raise  
             
-    def getTFLTubeAsDataFrame(self,start='19000101',end=None):
+    def getTFLTube(self,start='19000101',end=None):
         
         try:   
                         
@@ -302,7 +301,7 @@ class AQ():
             for i in tubetopics.index:
                 mytopic = tubetopics.ix[i]['topic']
                 print('fetching '+tubetopics.ix[i]['name']) 
-                tubeThing = self.getTFLTube(topic = mytopic, start = start, end = end)
+                tubeThing = self.getTFLTubeByTopic(topic = mytopic, start = start, end = end)
                 tubeThing['name'] = tubetopics.ix[i]['name']
                 tubeThings = tubeThings.append(tubeThing)
 
@@ -326,7 +325,7 @@ class AQ():
             print ("Unexpected error:") 
             raise  
 
-    def getTFLRoads(self,topic,start='19000101',end=None):
+    def getTFLRoadsByTopic(self,topic,start='19000101',end=None):
             
             try:
                 
@@ -367,7 +366,7 @@ class AQ():
                 print ("Unexpected error:") 
                 raise
 
-    def getTFLRoadsAsDataFrame(self,start='19000101',end=None):
+    def getTFLRoads(self,start='19000101',end=None):
         
         try:   
                         
@@ -380,7 +379,7 @@ class AQ():
             for i in roadtopics.index:
                 mytopic = roadtopics.ix[i]['topic']
                 print('fetching '+roadtopics.ix[i]['name']) 
-                roadThing, meta_data = self.getTFLRoads(topic = mytopic, start = start, end = end)
+                roadThing, meta_data = self.getTFLRoadsByTopic(topic = mytopic, start = start, end = end)
                 roadThings = roadThings.append(roadThing)
                 for key in meta_data.keys(): 
                     roadMetaData[key] = meta_data[key]
@@ -403,4 +402,60 @@ class AQ():
             print ("Unexpected error:") 
             raise    
   
-   
+    def getPostcode(self,postcode):
+        url = '%s/postcode/%s.json' % ('http://www.uk-postcodes.com', postcode)
+        response = requests.get(url)
+        return response.json()
+        
+    def getDistance(self,first, second):
+        lat_1 = radians(first[0])
+        lat_2 = radians(second[0])
+        d_lat = radians(second[0] - first[0])
+        d_lng = radians(second[1] - first[1])
+        R = 6371.0
+        a = pow(sin(d_lat / 2.0), 2) + cos(lat_1) * cos(lat_2) * \
+            pow(sin(d_lng / 2.0), 2)
+        c = 2.0 * atan2(sqrt(a), sqrt(1 - a))
+        return R * c
+    
+    def getMovingAverage(self,x, n, type='simple'):
+        """
+        compute an n period moving average.
+    
+        type is 'simple' | 'exponential'
+    
+        """
+        x = numpy.asarray(x)
+        if type == 'simple':
+            weights = numpy.ones(n)
+        else:
+            weights = numpy.exp(numpy.linspace(-1., 0., n))
+    
+        weights /= weights.sum()
+    
+        a = numpy.convolve(x, weights, mode='full')[:len(x)]
+        a[:n] = a[n]
+        return a
+    
+    def getMovingAverageConvergence(self, x, nslow=8, nfast=4):
+        """
+        compute the MACD (Moving Average Convergence/Divergence) using a fast and slow exponential moving avg'
+        return value is emaslow, emafast, macd which are len(x) arrays
+        """
+        emaslow = self.getMovingAverage(x, nslow, type='exponential')
+        emafast = self.getMovingAverage(x, nfast, type='exponential')
+        return emafast, emaslow, emafast - emaslow
+        
+    def getWeights(self,myPostCode,sensor_locations, threshold = 0.01, decay = 2):
+    
+        #get the geo data for my postcode
+        geo_meta_data=self.getPostcode(myPostCode)
+        #get the distance from all the LAQN sensors from my postcode
+        distance = pandas.Series(dict((k, self.getDistance(v,[geo_meta_data['geo']['lng'], geo_meta_data['geo']['lat']])) for k, v in sensor_locations.items()))
+        #work out the weight for each LAQN sensor
+        weight = numpy.exp(-decay*distance)/sum(numpy.exp(-decay*distance))
+        
+        #to keep it manageable just get the weights that are more than 1% default threshold
+        weight = weight[weight>threshold]/weight[weight>threshold].sum()
+    
+        return weight

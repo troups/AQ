@@ -1,55 +1,39 @@
 import datetime
 import numpy as np
-import pandas
 import matplotlib.pyplot as plt
 import scipy
-from AQ import *
+from London import *
 
-#some functions pinched from finance charting
-def moving_average(x, n, type='simple'):
-    """
-    compute an n period moving average.
+"""
 
-    type is 'simple' | 'exponential'
+Why
 
-    """
-    x = np.asarray(x)
-    if type == 'simple':
-        weights = np.ones(n)
-    else:
-        weights = np.exp(np.linspace(-1., 0., n))
+we want to find ways of following air quality trends
 
-    weights /= weights.sum()
+How
+Use the London city class
+get air quality data from opensensors
+use MACD measure with a fast exponential moving average
+plot
 
-    a = np.convolve(x, weights, mode='full')[:len(x)]
-    a[:n] = a[n]
-    return a
-    
-def moving_average_convergence(x, nslow=8, nfast=4):
-    """
-    compute the MACD (Moving Average Convergence/Divergence) using a fast and slow exponential moving avg'
-    return value is emaslow, emafast, macd which are len(x) arrays
-    """
-    emaslow = moving_average(x, nslow, type='exponential')
-    emafast = moving_average(x, nfast, type='exponential')
-    return emafast, emaslow, emafast - emaslow
+"""
 
 #the location we are looking at
 location = 'tower-hamlets-blackwall'
 #API Key comes from your account on the opensensors platform
 API_KEY = ''
 #the first date we try and get data 
-lookback = 10
+lookback = 2
 #the first date we try and get data 
 start_date = (datetime.datetime.now() + datetime.timedelta(days=-lookback)).strftime("%Y%m%d")
 #the last date defaults to today
 end_date =datetime.datetime.now().strftime("%Y%m%d")
 #create instance of Air Quality Object
-opensensor = AQ(API_KEY)
+opensensor = London(API_KEY)
 
 #generate start end pairs for the loop
 
-mtx = opensensor.getLAQNAsDataFrame(start=start_date,end=end_date, location = location)
+mtx = opensensor.getAirQuality(start=start_date,end=end_date, location = location)
 
 NO2=mtx['NO2'].resample('H', how='median').ffill().bfill()
 PM10=mtx['PM10'].resample('H', how='median').ffill().bfill()
@@ -60,8 +44,8 @@ nslow = 6
 nfast = 3
 
 
-NO2_emafast,NO2_emaslow,NO2_macd = moving_average_convergence(NO2[location], nslow=nslow, nfast=nfast)
-PM10_emafast,PM10_emaslow,PM10_macd = moving_average_convergence(PM10[location], nslow=nslow, nfast=nfast)
+NO2_emafast,NO2_emaslow,NO2_macd = opensensor.getMovingAverageConvergence(x=NO2[location], nslow=nslow, nfast=nfast)
+PM10_emafast,PM10_emaslow,PM10_macd = opensensor.getMovingAverageConvergence(PM10[location], nslow=nslow, nfast=nfast)
 
 #create a Z score equally weighted accross the 2 measures NO2 and PM10
 NO2_wgt = 0.25

@@ -1,8 +1,8 @@
-from AQ import *
+from London import *
 import pandas 
 import datetime
 
-lookback = 10
+lookback = 2
 
 #API Key comes from your account on the opensensors platform
 API_KEY = ''
@@ -12,13 +12,13 @@ start_date = (datetime.datetime.now() + datetime.timedelta(days=-lookback)).strf
 end_date =datetime.datetime.now().strftime("%Y%m%d")
 
 #create instance of Air Quality Object
-opensensor = AQ(API_KEY)
+opensensor = London(API_KEY)
 
 #initiated the list of days for which well have a list of measures
 BikeData = pandas.DataFrame(columns = ['name', 'level_1', 'value'])
 BikeMetaData = {}
 
-todays_matrix, todays_metadata = opensensor.getTFLBikesAsDataFrame(start_date,end_date)
+todays_matrix, todays_metadata = opensensor.getTFLBikes(start_date,end_date)
 
 #lose dupes
 todays_matrix = todays_matrix[~todays_matrix.duplicated(['name', 'level_1', 'value'])]
