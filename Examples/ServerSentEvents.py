@@ -31,7 +31,7 @@ messages = SSEClient('https://realtime.opensensors.io/v1/public/events/orgs/'+or
 for msg in messages:
     if i < n:
         i=i+1
-        print(i)
+        print(msg)
     else:
         break
 end = datetime.datetime.now()

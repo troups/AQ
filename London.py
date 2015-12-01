@@ -217,11 +217,15 @@ class London():
     def getTFLBikes(self,start='19000101',end=None):
         
         try:   
-    
+            print ('get bike topics')
+            
             BikeThings = pandas.DataFrame(columns = ['name', 'level_1', 'value'])
             BikeMetaData = {}
             
-            Biketopics = json_normalize(self.getPublicTopicSearch('bike'))
+            Biketopics = json_normalize(self.getTopicsForOrg('Tfl'))
+            
+            Biketopics = Biketopics[Biketopics['topic'].str.contains("/orgs/tfl/bikes/")]
+              
             
             #get the data from each topic
             for i in Biketopics.index:

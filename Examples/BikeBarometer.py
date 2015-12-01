@@ -1,6 +1,7 @@
 import datetime
 import numpy as np
 import pandas
+import scipy.stats as stats
 from London import *
 import csv
 
@@ -24,7 +25,7 @@ Plot
 """
 
 #how many days we want to look back over time
-lookback = 5
+lookback = 20
 #the file that holds all the meta data for LAQN sensors
 LAQN_file = '/home/troups/osio/AQ/Data/LAQN.csv'
 Barometer_file = 'Barometer.csv'
@@ -55,17 +56,32 @@ def moving_average_convergence(x, nslow=8, nfast=4):
 LAQN_mtx = opensensor.getAirQuality(start=start_date,end=end_date)
 
 #get bike data
-bikes_mtx, bikes_metadata = opensensor.getTFLBikes(start_date,end_date)
+bikes_mtx, bikes_metadata = opensensor.getTFLBikes((datetime.datetime.now() + datetime.timedelta(days=-1)).strftime("%Y%m%d"),end_date)
+
+
+coverage_day = LAQN_mtx['NO2'].transpose().apply(np.isnan).sum()/LAQN_mtx['NO2'].transpose().apply(np.isnan).count() 
+NO2 = LAQN_mtx['NO2'][coverage_day < 0.2]
+
+coverage_sensor = NO2.apply(np.isnan).sum()/NO2.apply(np.isnan).count() 
+
+NO2 = NO2.transpose()[coverage_sensor < 0.2].transpose()
+
+mean_daily_variance = NO2.groupby(lambda x: (x.date)).std()
+
+for row in mean_daily_variance.index:
+    if mean_daily_variance.mean(1)[row] < 1:
+        valid_dates = NO2.index[NO2.index.date != row]
+        NO2 = NO2.transpose()[valid_dates].transpose()
+    
 
 #ffill and bfill NA's
-NO2 = LAQN_mtx['NO2'].ffill().bfill()
-NO2 = NO2.transpose().dropna(subset=list(NO2.index), how='all').transpose()
+NO2 = NO2.ffill().bfill()
 
 distance = pandas.DataFrame()
 
 for rack in bikes_metadata:
     distance[rack] = pandas.Series(dict((k, opensensor.getDistance(v,bikes_metadata[rack])) for k, v in LAQN_locations.items()))
-    
+    import scipy.stats as stats
     
 distance = distance.transpose()[list(NO2.columns)].transpose()  
     
@@ -98,8 +114,7 @@ signal[signal == -1] = 0
 hourly_avg = (signal.groupby(lambda x: (x.hour)).mean())
 
 #give the object an index
-hourly_avg.index =  signal.index[0:24]
+hourly_avg.index =  LAQN_mtx['NO2'].index[0:24]
 
 #Curve
-hourly_avg.mean(1).plot()
-
+(100*hourly_avg.mean(1)).plot()
