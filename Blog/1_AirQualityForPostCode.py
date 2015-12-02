@@ -91,12 +91,12 @@ Postcode_emafast,Postcode_emaslow,Postcode_macd = opensensor.getMovingAverageCon
 #plot results
 fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True)
 
-ax1.fill_between(np.asarray(list(range(len(NO2))))/24, Postcode_emafast, scipy.zeros(len(NO2)), where=Postcode_emafast>=Postcode_emaslow, facecolor='red', interpolate=True)
-ax1.fill_between(np.asarray(list(range(len(NO2))))/24, Postcode_emafast, scipy.zeros(len(NO2)), where=Postcode_emafast<=Postcode_emaslow, facecolor='green', interpolate=True)
+ax1.fill_between(np.asarray(list(range(len(NO2)))), Postcode_emafast, scipy.zeros(len(NO2)), where=Postcode_emafast>=Postcode_emaslow, facecolor='red', interpolate=True)
+ax1.fill_between(np.asarray(list(range(len(NO2)))), Postcode_emafast, scipy.zeros(len(NO2)), where=Postcode_emafast<=Postcode_emaslow, facecolor='green', interpolate=True)
 ax1.set_ylabel('NO2')
 
-ax2.fill_between(np.asarray(list(range(len(NO2))))/24, Postcode_emafast, Postcode_emaslow, where=Postcode_emafast>=Postcode_emaslow, facecolor='red', interpolate=True)
-ax2.fill_between(np.asarray(list(range(len(NO2))))/24, Postcode_emafast, Postcode_emaslow, where=Postcode_emafast<=Postcode_emaslow, facecolor='green', interpolate=True)
+ax2.fill_between(np.asarray(list(range(len(NO2)))), Postcode_emafast, Postcode_emaslow, where=Postcode_emafast>=Postcode_emaslow, facecolor='red', interpolate=True)
+ax2.fill_between(np.asarray(list(range(len(NO2)))), Postcode_emafast, Postcode_emaslow, where=Postcode_emafast<=Postcode_emaslow, facecolor='green', interpolate=True)
 ax2.set_ylabel('NO2')
 
 plt.show()
