@@ -28,10 +28,10 @@ Plot
 #how many days we want to look back over time
 lookback = 20
 #the file that holds all the meta data for LAQN sensors
-LAQN_file = '/home/troups/osio/AQ/Data/LAQN.csv'
+LAQN_file = '\Data\LAQN.csv'
 
 #API Key comes from your account on the opensensors platform
-API_KEY = '36a1dd80-b5f4-48ce-8dce-50b50905f0fd'
+API_KEY = ''
 #the first date we try and get data 
 start_date = (datetime.datetime.now() + datetime.timedelta(days=-lookback)).strftime("%Y%m%d")
 #the last date defaults to today
